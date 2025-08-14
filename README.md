@@ -23,7 +23,7 @@ yarn add jsonl-parser-stream
 ## Quick Start
 
 ```typescript
-import { createReadStream } from 'fs'
+import { createReadStream } from 'node:fs'
 import { JSONLParser } from 'jsonl-parser-stream'
 
 const parser = new JSONLParser()
@@ -68,8 +68,8 @@ The `JSONLParser` extends Node.js `Transform` stream, so it inherits all standar
 ### Basic Usage
 
 ```typescript
+import { createReadStream } from 'node:fs'
 import { JSONLParser } from 'jsonl-parser-stream'
-import { createReadStream } from 'fs'
 
 const parser = new JSONLParser()
 createReadStream('data.jsonl').pipe(parser)
@@ -106,7 +106,7 @@ const parser = new JSONLParser({
     }
     // Convert numeric strings to numbers
     if (typeof value === 'string' && /^\d+$/.test(value)) {
-      return parseInt(value, 10)
+      return Number.parseInt(value, 10)
     }
     return value
   }
@@ -126,13 +126,13 @@ const safeParser = new JSONLParser({
 ### Processing Large Files
 
 ```typescript
-import { createReadStream, createWriteStream } from 'fs'
-import { Transform } from 'stream'
-import { pipeline } from 'stream/promises'
+import { createReadStream, createWriteStream } from 'node:fs'
+import { Transform } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 
-const parser = new JSONLParser({ 
+const parser = new JSONLParser({
   maxLineLength: 10 * 1024, // 10KB max per line
-  strict: false 
+  strict: false
 })
 
 const processor = new Transform({
@@ -143,7 +143,7 @@ const processor = new Transform({
       ...obj,
       processed_at: new Date().toISOString()
     }
-    callback(null, JSON.stringify(processed) + '\n')
+    callback(null, `${JSON.stringify(processed)}\n`)
   }
 })
 
@@ -159,14 +159,14 @@ await pipeline(
 ### Async Iterator Usage
 
 ```typescript
-import { Readable } from 'stream'
+import { Readable } from 'node:stream'
 
 const parser = new JSONLParser()
 const readable = Readable.from(createReadStream('data.jsonl').pipe(parser))
 
 for await (const obj of readable) {
   console.log('Object:', obj)
-  
+
   // Process objects one by one
   if (obj.type === 'important') {
     await processImportantObject(obj)
@@ -184,9 +184,11 @@ const parser = new JSONLParser({ strict: true })
 parser.on('error', (err) => {
   if (err.message.includes('Invalid JSON at line')) {
     console.error('JSON parsing failed:', err.message)
-  } else if (err.message.includes('Line length')) {
+  }
+  else if (err.message.includes('Line length')) {
     console.error('Line too long:', err.message)
-  } else if (err.message.includes('Buffer size exceeded')) {
+  }
+  else if (err.message.includes('Buffer size exceeded')) {
     console.error('Memory limit exceeded:', err.message)
   }
 })
@@ -203,12 +205,12 @@ class LoggingJSONLParser extends JSONLParser {
   _transform(chunk, encoding, callback) {
     const originalPush = this.push
     let lineNumber = 0
-    
+
     this.push = (obj) => {
       lineNumber++
       return originalPush.call(this, obj)
     }
-    
+
     super._transform(chunk, encoding, (err) => {
       if (err && !this.strict) {
         console.warn(`Skipped invalid line ${lineNumber}: ${err.message}`)

@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { Readable } from 'stream'
-import { pipeline } from 'stream/promises'
+import { Buffer } from 'node:buffer'
+import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { JSONLParser } from '../src/index'
 
-describe('JSONLParser', () => {
+describe('jSONLParser', () => {
   let parser: JSONLParser
 
   beforeEach(() => {
@@ -23,7 +24,7 @@ describe('JSONLParser', () => {
         reviver,
         skipEmptyLines: false,
         maxLineLength: 1000,
-        encoding: 'ascii'
+        encoding: 'ascii',
       })
       expect(parser).toBeInstanceOf(JSONLParser)
     })
@@ -44,12 +45,12 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(results).toEqual([
         { name: 'Alice', age: 30 },
-        { name: 'Bob', age: 25 }
+        { name: 'Bob', age: 25 },
       ])
     })
 
@@ -67,7 +68,7 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(results).toEqual([{ test: true }])
@@ -77,7 +78,7 @@ describe('JSONLParser', () => {
       const chunks = [
         '{"name":"A',
         'lice","age":30}\n{"na',
-        'me":"Bob","age":25}\n'
+        'me":"Bob","age":25}\n',
       ]
       const results: any[] = []
 
@@ -91,12 +92,12 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(results).toEqual([
         { name: 'Alice', age: 30 },
-        { name: 'Bob', age: 25 }
+        { name: 'Bob', age: 25 },
       ])
     })
   })
@@ -116,7 +117,7 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(results).toHaveLength(2)
@@ -138,7 +139,7 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(results).toHaveLength(2)
@@ -160,7 +161,7 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(results).toHaveLength(3)
@@ -182,13 +183,13 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(results).toEqual([
         { test: 1 },
         { test: 2 },
-        { test: 3 }
+        { test: 3 },
       ])
     })
 
@@ -207,13 +208,13 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       // Should have 2 valid objects (empty line causes parse error but is skipped in non-strict)
       expect(results).toEqual([
         { test: 1 },
-        { test: 2 }
+        { test: 2 },
       ])
     })
   })
@@ -233,8 +234,8 @@ describe('JSONLParser', () => {
             for await (const chunk of source) {
               yield chunk
             }
-          }
-        )
+          },
+        ),
       ).rejects.toThrow('Invalid JSON at line')
     })
 
@@ -252,8 +253,8 @@ describe('JSONLParser', () => {
             for await (const chunk of source) {
               yield chunk
             }
-          }
-        )
+          },
+        ),
       ).rejects.toThrow('Line length')
     })
 
@@ -271,8 +272,8 @@ describe('JSONLParser', () => {
             for await (const chunk of source) {
               yield chunk
             }
-          }
-        )
+          },
+        ),
       ).rejects.toThrow('Buffer size exceeded')
     })
   })
@@ -293,12 +294,12 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(results).toEqual([
         { valid: 1 },
-        { valid: 2 }
+        { valid: 2 },
       ])
     })
 
@@ -317,12 +318,12 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(results).toEqual([
         { short: true },
-        { also_short: true }
+        { also_short: true },
       ])
     })
   })
@@ -330,8 +331,10 @@ describe('JSONLParser', () => {
   describe('reviver function', () => {
     it('should apply reviver function to parsed objects', async () => {
       const reviver = vi.fn((key: string, value: any) => {
-        if (key === 'timestamp') return new Date(value)
-        if (key === 'count' && typeof value === 'string') return parseInt(value, 10)
+        if (key === 'timestamp')
+          return new Date(value)
+        if (key === 'count' && typeof value === 'string')
+          return Number.parseInt(value, 10)
         return value
       })
 
@@ -349,7 +352,7 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(reviver).toHaveBeenCalled()
@@ -375,7 +378,7 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(results).toEqual([{ ascii: true }])
@@ -397,7 +400,7 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(results).toEqual([])
@@ -417,7 +420,7 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(results).toEqual([])
@@ -426,9 +429,9 @@ describe('JSONLParser', () => {
     it('should handle very large valid JSON objects', async () => {
       const largeObject = {
         data: 'x'.repeat(1000),
-        array: new Array(100).fill(0).map((_, i) => ({ id: i, value: `item_${i}` }))
+        array: Array.from({ length: 100 }).fill(0).map((_, i) => ({ id: i, value: `item_${i}` })),
       }
-      const input = JSON.stringify(largeObject) + '\n'
+      const input = `${JSON.stringify(largeObject)}\n`
       const results: any[] = []
 
       const readable = Readable.from([input])
@@ -441,7 +444,7 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(results).toHaveLength(1)
@@ -462,13 +465,13 @@ describe('JSONLParser', () => {
             results.push(chunk)
             yield chunk
           }
-        }
+        },
       )
 
       expect(results).toEqual([{
         emoji: '🚀',
         chinese: '你好',
-        math: '∑∆'
+        math: '∑∆',
       }])
     })
   })
@@ -476,9 +479,8 @@ describe('JSONLParser', () => {
   describe('performance considerations', () => {
     it('should handle many small objects efficiently', async () => {
       const lines = Array.from({ length: 100 }, (_, i) =>
-        JSON.stringify({ id: i, value: `item_${i}` })
-      )
-      const input = lines.join('\n') + '\n'
+        JSON.stringify({ id: i, value: `item_${i}` }))
+      const input = `${lines.join('\n')}\n`
       const results: any[] = []
 
       const readable = Readable.from([input])
@@ -504,16 +506,16 @@ describe('JSONLParser', () => {
       let processedCount = 0
       const totalItems = 50 // Reduced from 100
 
+      // eslint-disable-next-line prefer-template
       const input = Array.from({ length: totalItems }, (_, i) =>
-        JSON.stringify({ id: i, data: 'x'.repeat(50) }) // Reduced data size
-      ).join('\n') + '\n'
+        JSON.stringify({ id: i, data: 'x'.repeat(50) })).join('\n') + '\n'
 
       const readable = Readable.from([input])
       const parser = new JSONLParser()
 
       readable.pipe(parser)
 
-      parser.on('data', async (chunk) => {
+      parser.on('data', async () => {
         processedCount++
         // Simulate very light processing instead of setTimeout
         await Promise.resolve()

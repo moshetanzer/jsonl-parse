@@ -1,5 +1,5 @@
-import { Transform } from 'stream'
-import type { TransformCallback } from 'stream'
+import type { TransformCallback } from 'node:stream'
+import { Transform } from 'node:stream'
 
 export interface JSONLParserOptions {
   /**
@@ -16,11 +16,11 @@ export interface JSONLParserOptions {
    * If false, whitespace is preserved and empty lines are passed to JSON.parse.
    */
   skipEmptyLines?: boolean
-  /** 
+  /**
    * Maximum line length to prevent memory issues (default: Infinity)
    */
   maxLineLength?: number
-  /** 
+  /**
    * Encoding for chunk conversion (default: 'utf8')
    */
   encoding?: BufferEncoding
@@ -66,12 +66,14 @@ export class JSONLParser extends Transform {
 
       if (this.skipEmptyLines) {
         line = line.trim()
-        if (!line) continue
+        if (!line)
+          continue
       }
 
       try {
         this.push(JSON.parse(line, this.reviver || undefined))
-      } catch (e) {
+      }
+      catch {
         if (this.strict) {
           return callback(new Error(`Invalid JSON at line: ${line.slice(0, 50)}...`))
         }
@@ -86,7 +88,8 @@ export class JSONLParser extends Transform {
 
     if (this.skipEmptyLines) {
       line = line.trim()
-      if (!line) return callback()
+      if (!line)
+        return callback()
     }
 
     if (line) {
@@ -99,7 +102,8 @@ export class JSONLParser extends Transform {
 
       try {
         this.push(JSON.parse(line, this.reviver || undefined))
-      } catch (e) {
+      }
+      catch {
         if (this.strict) {
           return callback(new Error(`Invalid JSON in last line: ${line.slice(0, 50)}...`))
         }

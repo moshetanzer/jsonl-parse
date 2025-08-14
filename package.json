@@ -1,24 +1,24 @@
 {
   "name": "jsonl-parser-stream",
+  "type": "module",
   "version": "0.0.1",
   "description": "A streaming JSON Lines parser for Node.js",
-  "type": "module",
   "license": "MIT",
   "homepage": "https://github.com/moshetanzer/jsonl-parser-stream#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/moshetanzer/jsonl-parser-stream.git"
   },
-  "files": [
-    "dist"
-  ],
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
     "./package.json": "./package.json"
   },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -27,11 +27,15 @@
     "dev": "tsdown --watch",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "release": "bumpp && npm publish"
+    "release": "bumpp && npm publish",
+    "lint": "eslint . --ext .ts,.js --ignore-pattern '*.md'",
+    "lint:fix": "eslint . --ext .ts,.js --ignore-pattern '*.md' --fix "
   },
   "devDependencies": {
+    "@antfu/eslint-config": "^5.2.1",
     "@types/node": "^22.15.17",
     "bumpp": "^10.1.0",
+    "eslint": "^9.33.0",
     "tsdown": "^0.11.9",
     "typescript": "^5.8.3",
     "vitest": "^3.1.3"
