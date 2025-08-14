@@ -2,31 +2,31 @@ import { Buffer } from 'node:buffer'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { JSONLParser } from '../src/index'
+import { JSONLParse } from '../src/index'
 
-describe('jSONLParser', () => {
-  let parser: JSONLParser
+describe('jSONLParse', () => {
+  let parser: JSONLParse
 
   beforeEach(() => {
-    parser = new JSONLParser()
+    parser = new JSONLParse()
   })
 
   describe('constructor', () => {
     it('should create instance with default options', () => {
-      const parser = new JSONLParser()
-      expect(parser).toBeInstanceOf(JSONLParser)
+      const parser = new JSONLParse()
+      expect(parser).toBeInstanceOf(JSONLParse)
     })
 
     it('should accept custom options', () => {
       const reviver = vi.fn()
-      const parser = new JSONLParser({
+      const parser = new JSONLParse({
         strict: false,
         reviver,
         skipEmptyLines: false,
         maxLineLength: 1000,
         encoding: 'ascii',
       })
-      expect(parser).toBeInstanceOf(JSONLParser)
+      expect(parser).toBeInstanceOf(JSONLParse)
     })
   })
 
@@ -194,7 +194,7 @@ describe('jSONLParser', () => {
     })
 
     it('should preserve empty lines when skipEmptyLines is false', async () => {
-      const parser = new JSONLParser({ skipEmptyLines: false, strict: false })
+      const parser = new JSONLParse({ skipEmptyLines: false, strict: false })
       const input = '{"test": 1}\n\n{"test": 2}\n'
       const results: any[] = []
 
@@ -221,7 +221,7 @@ describe('jSONLParser', () => {
 
   describe('error handling - strict mode', () => {
     it('should throw error on invalid JSON in strict mode', async () => {
-      const parser = new JSONLParser({ strict: true })
+      const parser = new JSONLParse({ strict: true })
       const input = '{"valid": true}\n{invalid json}\n{"more": "data"}\n'
 
       const readable = Readable.from([input])
@@ -240,7 +240,7 @@ describe('jSONLParser', () => {
     })
 
     it('should throw error on line length exceeded in strict mode', async () => {
-      const parser = new JSONLParser({ strict: true, maxLineLength: 10 })
+      const parser = new JSONLParse({ strict: true, maxLineLength: 10 })
       const input = '{"this_is_a_very_long_line_that_exceeds_limit": true}\n'
 
       const readable = Readable.from([input])
@@ -259,7 +259,7 @@ describe('jSONLParser', () => {
     })
 
     it('should throw error on buffer size exceeded', async () => {
-      const parser = new JSONLParser({ strict: true, maxLineLength: 10 })
+      const parser = new JSONLParse({ strict: true, maxLineLength: 10 })
       const input = 'x'.repeat(200) // Very long input without newlines
 
       const readable = Readable.from([input])
@@ -280,7 +280,7 @@ describe('jSONLParser', () => {
 
   describe('error handling - lenient mode', () => {
     it('should skip invalid JSON in lenient mode', async () => {
-      const parser = new JSONLParser({ strict: false })
+      const parser = new JSONLParse({ strict: false })
       const input = '{"valid": 1}\n{invalid json}\n{"valid": 2}\n'
       const results: any[] = []
 
@@ -304,7 +304,7 @@ describe('jSONLParser', () => {
     })
 
     it('should skip overly long lines in lenient mode', async () => {
-      const parser = new JSONLParser({ strict: false, maxLineLength: 20 })
+      const parser = new JSONLParse({ strict: false, maxLineLength: 20 })
       const input = '{"short": true}\n{"this_line_is_way_too_long_and_exceeds_the_limit": true}\n{"also_short": true}\n'
       const results: any[] = []
 
@@ -338,7 +338,7 @@ describe('jSONLParser', () => {
         return value
       })
 
-      const parser = new JSONLParser({ reviver })
+      const parser = new JSONLParse({ reviver })
       const input = '{"timestamp": "2023-01-01T00:00:00Z", "count": "42", "name": "test"}\n'
       const results: any[] = []
 
@@ -364,7 +364,7 @@ describe('jSONLParser', () => {
 
   describe('encoding handling', () => {
     it('should handle different encodings', async () => {
-      const parser = new JSONLParser({ encoding: 'ascii' })
+      const parser = new JSONLParse({ encoding: 'ascii' })
       const input = '{"ascii": true}\n'
       const results: any[] = []
 
@@ -484,7 +484,7 @@ describe('jSONLParser', () => {
       const results: any[] = []
 
       const readable = Readable.from([input])
-      const parser = new JSONLParser()
+      const parser = new JSONLParse()
 
       readable.pipe(parser)
 
@@ -511,7 +511,7 @@ describe('jSONLParser', () => {
         JSON.stringify({ id: i, data: 'x'.repeat(50) })).join('\n') + '\n'
 
       const readable = Readable.from([input])
-      const parser = new JSONLParser()
+      const parser = new JSONLParse()
 
       readable.pipe(parser)
 

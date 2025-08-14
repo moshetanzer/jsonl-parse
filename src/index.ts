@@ -1,7 +1,7 @@
 import type { TransformCallback } from 'node:stream'
 import { Transform } from 'node:stream'
 
-export interface JSONLParserOptions {
+export interface JSONLParseOptions {
   /**
    * If true (default), stops the stream on the first invalid JSON line.
    * If false, invalid lines are silently skipped.
@@ -26,7 +26,7 @@ export interface JSONLParserOptions {
   encoding?: BufferEncoding
 }
 
-export class JSONLParser extends Transform {
+export class JSONLParse extends Transform {
   private buffer: string
   private strict: boolean
   private reviver: ((this: any, key: string, value: any) => any) | null
@@ -34,7 +34,7 @@ export class JSONLParser extends Transform {
   private maxLineLength: number
   private encoding: BufferEncoding
 
-  constructor(options: JSONLParserOptions = {}) {
+  constructor(options: JSONLParseOptions = {}) {
     super({ objectMode: true })
     this.buffer = ''
     this.strict = options.strict !== false

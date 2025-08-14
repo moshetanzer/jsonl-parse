@@ -1,4 +1,4 @@
-# JSONLParser
+# JSONLParse
 
 A high-performance, memory-safe TypeScript/JavaScript streaming parser for JSONL (JSON Lines) files.
 
@@ -15,18 +15,18 @@ A high-performance, memory-safe TypeScript/JavaScript streaming parser for JSONL
 ## Installation
 
 ```bash
-npm install jsonl-parser-stream
+npm install jsonl-parse
 # or
-yarn add jsonl-parser-stream
+yarn add jsonl-parse
 ```
 
 ## Quick Start
 
 ```typescript
 import { createReadStream } from 'node:fs'
-import { JSONLParser } from 'jsonl-parser-stream'
+import { JSONLParse } from 'jsonl-parse'
 
-const parser = new JSONLParser()
+const parser = new JSONLParse()
 
 createReadStream('data.jsonl')
   .pipe(parser)
@@ -46,10 +46,10 @@ createReadStream('data.jsonl')
 ### Constructor
 
 ```typescript
-new JSONLParser(options?: JSONLParserOptions)
+new JSONLParse(options?: JSONLParseOptions)
 ```
 
-### JSONLParserOptions
+### JSONLParseOptions
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -61,7 +61,7 @@ new JSONLParser(options?: JSONLParserOptions)
 
 ### Methods
 
-The `JSONLParser` extends Node.js `Transform` stream, so it inherits all standard stream methods.
+The `JSONLParse` extends Node.js `Transform` stream, so it inherits all standard stream methods.
 
 ## Usage Examples
 
@@ -69,9 +69,9 @@ The `JSONLParser` extends Node.js `Transform` stream, so it inherits all standar
 
 ```typescript
 import { createReadStream } from 'node:fs'
-import { JSONLParser } from 'jsonl-parser-stream'
+import { JSONLParse } from 'jsonl-parse'
 
-const parser = new JSONLParser()
+const parser = new JSONLParse()
 createReadStream('data.jsonl').pipe(parser)
 ```
 
@@ -79,7 +79,7 @@ createReadStream('data.jsonl').pipe(parser)
 
 ```typescript
 // Stops on first invalid JSON line
-const strictParser = new JSONLParser({ strict: true })
+const strictParser = new JSONLParse({ strict: true })
 
 strictParser.on('error', (err) => {
   console.error('Invalid JSON found:', err.message)
@@ -90,7 +90,7 @@ strictParser.on('error', (err) => {
 
 ```typescript
 // Skips invalid JSON lines silently
-const lenientParser = new JSONLParser({ strict: false })
+const lenientParser = new JSONLParse({ strict: false })
 
 // Will process valid lines and skip invalid ones
 ```
@@ -98,7 +98,7 @@ const lenientParser = new JSONLParser({ strict: false })
 ### With Custom JSON Reviver
 
 ```typescript
-const parser = new JSONLParser({
+const parser = new JSONLParse({
   reviver: (key, value) => {
     // Convert timestamp strings to Date objects
     if (key === 'timestamp') {
@@ -117,7 +117,7 @@ const parser = new JSONLParser({
 
 ```typescript
 // Protect against extremely large lines
-const safeParser = new JSONLParser({
+const safeParser = new JSONLParse({
   maxLineLength: 1024 * 1024, // 1MB per line maximum
   strict: false // Skip overly long lines instead of erroring
 })
@@ -130,7 +130,7 @@ import { createReadStream, createWriteStream } from 'node:fs'
 import { Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
-const parser = new JSONLParser({
+const parser = new JSONLParse({
   maxLineLength: 10 * 1024, // 10KB max per line
   strict: false
 })
@@ -161,7 +161,7 @@ await pipeline(
 ```typescript
 import { Readable } from 'node:stream'
 
-const parser = new JSONLParser()
+const parser = new JSONLParse()
 const readable = Readable.from(createReadStream('data.jsonl').pipe(parser))
 
 for await (const obj of readable) {
@@ -179,7 +179,7 @@ for await (const obj of readable) {
 ### Strict Mode Errors
 
 ```typescript
-const parser = new JSONLParser({ strict: true })
+const parser = new JSONLParse({ strict: true })
 
 parser.on('error', (err) => {
   if (err.message.includes('Invalid JSON at line')) {
@@ -197,11 +197,11 @@ parser.on('error', (err) => {
 ### Lenient Mode with Logging
 
 ```typescript
-const parser = new JSONLParser({ strict: false })
+const parser = new JSONLParse({ strict: false })
 
 // In lenient mode, errors are silently skipped
 // You can add custom logging by extending the class
-class LoggingJSONLParser extends JSONLParser {
+class LoggingJSONLParse extends JSONLParse {
   _transform(chunk, encoding, callback) {
     const originalPush = this.push
     let lineNumber = 0
@@ -232,7 +232,7 @@ class LoggingJSONLParser extends JSONLParser {
 2. **Set reasonable line limits**:
 
    ```typescript
-   new JSONLParser({ maxLineLength: 1024 * 1024 }) // 1MB
+   new JSONLParse({ maxLineLength: 1024 * 1024 }) // 1MB
    ```
 
 3. **Use object mode streams for processing**:
