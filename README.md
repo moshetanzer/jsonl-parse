@@ -221,32 +221,6 @@ class LoggingJSONLParse extends JSONLParse {
 }
 ```
 
-## Performance Tips
-
-1. **Use appropriate buffer sizes**:
-
-   ```typescript
-   createReadStream('file.jsonl', { highWaterMark: 64 * 1024 })
-   ```
-
-2. **Set reasonable line limits**:
-
-   ```typescript
-   new JSONLParse({ maxLineLength: 1024 * 1024 }) // 1MB
-   ```
-
-3. **Use object mode streams for processing**:
-
-   ```typescript
-   const processor = new Transform({ objectMode: true })
-   ```
-
-4. **Consider parallel processing for CPU-intensive tasks**:
-
-   ```typescript
-   // Use worker threads for heavy JSON processing
-   ```
-
 ## License
 
 MIT License - see LICENSE file for details.
