@@ -2,6 +2,7 @@
   "name": "jsonl-parse",
   "type": "module",
   "version": "0.0.4",
+  "packageManager": "pnpm@10.14.0",
   "description": "A streaming JSON Lines parser for Node.js",
   "license": "MIT",
   "homepage": "https://github.com/moshetanzer/jsonl-parse#readme",
