@@ -56,6 +56,7 @@ export class CSVToJSONL extends Transform {
     // Handle parsed records
     this.parser.on('readable', () => {
       let record
+      // eslint-disable-next-line no-cond-assign
       while ((record = this.parser.read()) !== null) {
         try {
           const line = this.processObject(record)
