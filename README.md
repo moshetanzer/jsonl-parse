@@ -1,16 +1,18 @@
 # JSONLParse
 
-A high-performance, memory-safe TypeScript/JavaScript streaming parser for JSONL (JSON Lines) files.
+A high-performance, memory-safe TypeScript/JavaScript streaming parser for JSONL (JSON Lines) files with extensive configuration options inspired by csv-parse.
 
 ## Features
 
 - 🚀 **High Performance**: Native Node.js streams with minimal overhead
 - 🛡️ **Memory Safe**: Built-in protection against memory exhaustion
 - 📝 **TypeScript Support**: Full type definitions and interfaces
-- 🔧 **Configurable**: Flexible options for different use cases
+- 🔧 **Highly Configurable**: Extensive options for data transformation and filtering
 - 🌍 **Cross-Platform**: Handles both Unix (`\n`) and Windows (`\r\n`) line endings
 - ⚡ **Streaming**: Process large files without loading everything into memory
-- 🎯 **Error Handling**: Strict and lenient parsing modes
+- 🎯 **Robust Error Handling**: Multiple error handling strategies
+- 📊 **Data Processing**: Built-in casting, trimming, and transformation capabilities
+- 🔍 **Flexible Filtering**: Record and line-based filtering options
 
 ## Installation
 
@@ -51,6 +53,8 @@ new JSONLParse(options?: JSONLParseOptions)
 
 ### JSONLParseOptions
 
+#### Basic Options
+
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `strict` | `boolean` | `true` | If `true`, stops on first invalid JSON. If `false`, skips invalid lines |
@@ -59,9 +63,52 @@ new JSONLParse(options?: JSONLParseOptions)
 | `maxLineLength` | `number` | `Infinity` | Maximum line length to prevent memory issues |
 | `encoding` | `BufferEncoding` | `'utf8'` | Encoding for chunk conversion |
 
-### Methods
+#### Column/Header Options
 
-The `JSONLParse` extends Node.js `Transform` stream, so it inherits all standard stream methods.
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `columns` | `string[]` \| `boolean` \| `function` | `null` | Convert arrays to objects. `true` uses first line as headers, array provides column names, function generates names |
+
+#### Record Filtering Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `from` | `number` | `null` | Start processing from record number (1-based) |
+| `to` | `number` | `null` | Stop processing at record number (1-based) |
+| `from_line` | `number` | `null` | Start processing from line number (1-based) |
+| `to_line` | `number` | `null` | Stop processing at line number (1-based) |
+
+#### Data Transformation Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `cast` | `boolean` \| `function` | `null` | Auto-convert strings to native types or use custom function |
+| `cast_date` | `boolean` \| `function` | `null` | Convert date strings to Date objects |
+| `ltrim` | `boolean` | `false` | Left-trim whitespace from lines |
+| `rtrim` | `boolean` | `false` | Right-trim whitespace from lines |
+| `trim` | `boolean` | `false` | Trim whitespace from both ends of lines |
+
+#### Callback Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `on_record` | `function` | `null` | Transform/filter each record. Return `null` to skip |
+| `on_skip` | `function` | `null` | Called when records are skipped due to errors |
+
+#### Output Enhancement Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `info` | `boolean` | `false` | Include parsing metadata (line/record counts) |
+| `raw` | `boolean` | `false` | Include original line text |
+| `objname` | `string` | `null` | Create nested objects keyed by field value |
+
+#### Skip Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `skip_records_with_empty_values` | `boolean` | `false` | Skip records where all values are empty |
+| `skip_records_with_error` | `boolean` | `false` | Continue processing when encountering invalid records |
 
 ## Usage Examples
 
@@ -75,55 +122,135 @@ const parser = new JSONLParse()
 createReadStream('data.jsonl').pipe(parser)
 ```
 
-### Strict Mode (Default)
+### Array to Object Conversion with Headers
 
 ```typescript
-// Stops on first invalid JSON line
-const strictParser = new JSONLParse({ strict: true })
+// Input: ["name","age","email"]
+//        ["Alice",30,"alice@test.com"]
+//        ["Bob",25,"bob@test.com"]
 
-strictParser.on('error', (err) => {
-  console.error('Invalid JSON found:', err.message)
-})
+const parser = new JSONLParse({ columns: true })
+
+// Output: {name: "Alice", age: 30, email: "alice@test.com"}
+//         {name: "Bob", age: 25, email: "bob@test.com"}
 ```
 
-### Lenient Mode
-
-```typescript
-// Skips invalid JSON lines silently
-const lenientParser = new JSONLParse({ strict: false })
-
-// Will process valid lines and skip invalid ones
-```
-
-### With Custom JSON Reviver
+### Custom Column Names
 
 ```typescript
 const parser = new JSONLParse({
-  reviver: (key, value) => {
-    // Convert timestamp strings to Date objects
-    if (key === 'timestamp') {
-      return new Date(value)
+  columns: ['id', 'name', 'email']
+})
+
+// Converts arrays to objects with specified keys
+```
+
+### Data Type Casting
+
+```typescript
+const parser = new JSONLParse({
+  cast: true, // Auto-convert strings to numbers, booleans, null
+  cast_date: true, // Convert date strings to Date objects
+})
+
+// Input: {"age": "30", "active": "true", "created": "2023-01-01"}
+// Output: {age: 30, active: true, created: Date object}
+```
+
+### Record Filtering
+
+```typescript
+const parser = new JSONLParse({
+  from: 10, // Start from 10th record
+  to: 100, // Stop at 100th record
+  from_line: 5, // Start from 5th line
+  to_line: 200 // Stop at 200th line
+})
+```
+
+### Custom Record Processing
+
+```typescript
+const parser = new JSONLParse({
+  on_record: (record, context) => {
+    // Transform each record
+    return {
+      ...record,
+      processed_at: new Date(),
+      line_number: context.lines
     }
-    // Convert numeric strings to numbers
-    if (typeof value === 'string' && /^\d+$/.test(value)) {
-      return Number.parseInt(value, 10)
-    }
-    return value
   }
 })
+```
+
+### Error Handling with Callbacks
+
+```typescript
+const parser = new JSONLParse({
+  strict: false,
+  on_skip: (error, line) => {
+    console.warn(`Skipped invalid line: ${line.slice(0, 50)}...`)
+    console.warn(`Error: ${error.message}`)
+  }
+})
+```
+
+### Enhanced Output with Metadata
+
+```typescript
+const parser = new JSONLParse({
+  info: true, // Include parsing metadata
+  raw: true // Include original line text
+})
+
+// Output: {
+//   info: { lines: 1, records: 1, invalid_field_length: 0 },
+//   raw: '{"name": "Alice"}',
+//   record: { name: "Alice" }
+// }
+```
+
+### Whitespace Handling
+
+```typescript
+const parser = new JSONLParse({
+  trim: true, // Trim both ends
+  // or
+  ltrim: true, // Left trim only
+  rtrim: true, // Right trim only
+})
+```
+
+### Skip Empty Records
+
+```typescript
+const parser = new JSONLParse({
+  skip_records_with_empty_values: true // Skip records with all empty/null values
+})
+```
+
+### Nested Object Creation
+
+```typescript
+const parser = new JSONLParse({
+  objname: 'id' // Use 'id' field as object key
+})
+
+// Input: {"id": "user1", "name": "Alice"}
+// Output: { user1: {"id": "user1", "name": "Alice"} }
 ```
 
 ### Memory-Safe Processing
 
 ```typescript
-// Protect against extremely large lines
 const safeParser = new JSONLParse({
   maxLineLength: 1024 * 1024, // 1MB per line maximum
-  strict: false // Skip overly long lines instead of erroring
+  strict: false, // Skip overly long lines instead of erroring
+  skip_records_with_error: true // Continue on any parsing errors
 })
 ```
 
-### Processing Large Files
+### Complex Data Pipeline
 
 ```typescript
 import { createReadStream, createWriteStream } from 'node:fs'
@@ -131,23 +258,35 @@ import { Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
 const parser = new JSONLParse({
-  maxLineLength: 10 * 1024, // 10KB max per line
-  strict: false
+  columns: true, // First line as headers
+  cast: true, // Auto-convert types
+  cast_date: true, // Convert dates
+  trim: true, // Trim whitespace
+  from: 2, // Skip first data record
+  skip_records_with_empty_values: true,
+  on_record: (record) => {
+    // Filter and transform
+    if (record.status !== 'active')
+      return null
+    return { ...record, processed: true }
+  },
+  info: true // Include metadata
 })
 
 const processor = new Transform({
   objectMode: true,
-  transform(obj, encoding, callback) {
-    // Process each parsed object
-    const processed = {
-      ...obj,
+  transform(data, encoding, callback) {
+    // Access both metadata and record
+    const { info, record } = data
+    const output = {
+      ...record,
+      metadata: info,
       processed_at: new Date().toISOString()
     }
-    callback(null, `${JSON.stringify(processed)}\n`)
+    callback(null, `${JSON.stringify(output)}\n`)
   }
 })
 
-// Stream processing pipeline
 await pipeline(
   createReadStream('input.jsonl'),
   parser,
@@ -161,16 +300,16 @@ await pipeline(
 ```typescript
 import { Readable } from 'node:stream'
 
-const parser = new JSONLParse()
+const parser = new JSONLParse({
+  cast: true,
+  on_record: record => record.priority === 'high' ? record : null
+})
+
 const readable = Readable.from(createReadStream('data.jsonl').pipe(parser))
 
 for await (const obj of readable) {
-  console.log('Object:', obj)
-
-  // Process objects one by one
-  if (obj.type === 'important') {
-    await processImportantObject(obj)
-  }
+  console.log('High priority object:', obj)
+  await processHighPriorityObject(obj)
 }
 ```
 
@@ -194,32 +333,33 @@ parser.on('error', (err) => {
 })
 ```
 
-### Lenient Mode with Logging
+### Lenient Mode with Error Tracking
 
 ```typescript
-const parser = new JSONLParse({ strict: false })
+let errorCount = 0
 
-// In lenient mode, errors are silently skipped
-// You can add custom logging by extending the class
-class LoggingJSONLParse extends JSONLParse {
-  _transform(chunk, encoding, callback) {
-    const originalPush = this.push
-    let lineNumber = 0
-
-    this.push = (obj) => {
-      lineNumber++
-      return originalPush.call(this, obj)
-    }
-
-    super._transform(chunk, encoding, (err) => {
-      if (err && !this.strict) {
-        console.warn(`Skipped invalid line ${lineNumber}: ${err.message}`)
-      }
-      callback(err)
-    })
+const parser = new JSONLParse({
+  strict: false,
+  skip_records_with_error: true,
+  on_skip: (error, line) => {
+    errorCount++
+    console.warn(`Error ${errorCount}: ${error.message}`)
+    console.warn(`Problem line: ${line.slice(0, 100)}...`)
   }
-}
+})
+
+parser.on('end', () => {
+  console.log(`Processing complete. ${errorCount} errors encountered.`)
+})
 ```
+
+## Performance Considerations
+
+- Use `strict: false` and `skip_records_with_error: true` for maximum throughput on noisy data
+- Set appropriate `maxLineLength` to prevent memory issues with malformed files
+- Use `from` and `to` options to process file chunks in parallel
+- The `on_record` callback adds processing overhead - use sparingly for high-volume streams
+- Enable `info` and `raw` options only when needed as they increase memory usage
 
 ## License
 
