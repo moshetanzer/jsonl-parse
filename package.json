@@ -1,0 +1,39 @@
+{
+  "name": "jsonl-parser-stream",
+  "version": "0.0.1",
+  "description": "A streaming JSON Lines parser for Node.js",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://github.com/moshetanzer/jsonl-parser-stream#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/moshetanzer/jsonl-parser-stream.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "release": "bumpp && npm publish"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.17",
+    "bumpp": "^10.1.0",
+    "tsdown": "^0.11.9",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.3"
+  }
+}
