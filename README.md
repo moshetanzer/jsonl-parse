@@ -223,4 +223,4 @@ class LoggingJSONLParse extends JSONLParse {
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License
