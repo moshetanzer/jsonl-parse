@@ -61,6 +61,7 @@ export class JSONLParse extends Transform {
   private context: RecordContext
   private headerColumns: string[] | null
   private headerProcessed: boolean
+  private isDestroyed: boolean // Add flag to track stream state
 
   constructor(options: JSONLParseOptions = {}) {
     super({ objectMode: true })
@@ -92,6 +93,14 @@ export class JSONLParse extends Transform {
     this.context = { lines: 0, records: 0, invalid_field_length: 0 }
     this.headerColumns = null
     this.headerProcessed = false
+    this.isDestroyed = false
+  }
+
+  private safePush(data: any): boolean {
+    if (this.isDestroyed || this.destroyed) {
+      return false
+    }
+    return this.push(data)
   }
 
   private trimValue(value: string): string {
@@ -242,146 +251,177 @@ export class JSONLParse extends Transform {
   }
 
   _transform(chunk: any, encoding: BufferEncoding, callback: TransformCallback) {
-    this.buffer += chunk.toString(this.encoding)
-
-    if (this.buffer.length > this.maxLineLength * 10) {
-      return callback(new Error('Buffer size exceeded maximum limit'))
+    if (this.isDestroyed || this.destroyed) {
+      return callback()
     }
 
-    const lines = this.buffer.split(/\r?\n/)
-    this.buffer = lines.pop() || ''
+    try {
+      this.buffer += chunk.toString(this.encoding)
 
-    for (let i = 0; i < lines.length; i++) {
-      this.context.lines++
+      if (this.buffer.length > this.maxLineLength * 10) {
+        return callback(new Error('Buffer size exceeded maximum limit'))
+      }
 
-      if (this.from_line && this.context.lines < this.from_line)
-        continue
-      if (this.to_line && this.context.lines > this.to_line)
-        break
+      const lines = this.buffer.split(/\r?\n/)
+      this.buffer = lines.pop() || ''
 
-      let line = lines[i]
+      for (let i = 0; i < lines.length; i++) {
+        if (this.isDestroyed || this.destroyed) {
+          return callback()
+        }
 
-      if (line.length > this.maxLineLength) {
-        this.context.invalid_field_length++
-        const error = new Error(`Line length ${line.length} exceeds maximum ${this.maxLineLength}`)
-        if (this.on_skip) {
-          this.on_skip(error, line)
+        this.context.lines++
+
+        if (this.from_line && this.context.lines < this.from_line)
+          continue
+        if (this.to_line && this.context.lines > this.to_line)
+          break
+
+        let line = lines[i]
+
+        if (line.length > this.maxLineLength) {
+          this.context.invalid_field_length++
+          const error = new Error(`Line length ${line.length} exceeds maximum ${this.maxLineLength}`)
+          if (this.on_skip) {
+            this.on_skip(error, line)
+            continue
+          }
+          if (this.skip_records_with_error)
+            continue
+          if (this.strict)
+            return callback(error)
           continue
         }
-        if (this.skip_records_with_error)
-          continue
-        if (this.strict)
-          return callback(error)
-        continue
-      }
 
-      if (this.skipEmptyLines) {
-        line = line.trim()
-        if (!line)
-          continue
-      }
-      else {
-        line = this.trimValue(line)
-      }
+        if (this.skipEmptyLines) {
+          line = line.trim()
+          if (!line)
+            continue
+        }
+        else {
+          line = this.trimValue(line)
+        }
 
-      let parsed: any
-      try {
-        parsed = JSON.parse(line, this.reviver || undefined)
-      }
-      catch {
-        const error = new Error(`Invalid JSON at line ${this.context.lines}: ${line.slice(0, 50)}...`)
-        if (this.on_skip) {
-          this.on_skip(error, line)
+        let parsed: any
+        try {
+          parsed = JSON.parse(line, this.reviver || undefined)
+        }
+        catch {
+          const error = new Error(`Invalid JSON at line ${this.context.lines}: ${line.slice(0, 50)}...`)
+          if (this.on_skip) {
+            this.on_skip(error, line)
+            continue
+          }
+          if (this.skip_records_with_error)
+            continue
+          if (this.strict)
+            return callback(error)
           continue
         }
-        if (this.skip_records_with_error)
+
+        const processed = this.processRecord(parsed, line)
+        if (processed === null)
           continue
-        if (this.strict)
-          return callback(error)
-        continue
+
+        this.context.records++
+
+        if (this.from && this.context.records < this.from)
+          continue
+        if (this.to && this.context.records > this.to)
+          break
+
+        if (!this.safePush(processed)) {
+          // If push returns false, we should stop processing
+          break
+        }
       }
-
-      const processed = this.processRecord(parsed, line)
-      if (processed === null)
-        continue
-
-      this.context.records++
-
-      if (this.from && this.context.records < this.from)
-        continue
-      if (this.to && this.context.records > this.to)
-        break
-
-      this.push(processed)
+      callback()
     }
-    callback()
+    catch (error) {
+      callback(error as Error)
+    }
   }
 
   _flush(callback: TransformCallback) {
-    let line = this.buffer
+    if (this.isDestroyed || this.destroyed) {
+      return callback()
+    }
 
-    if (line) {
-      this.context.lines++
+    try {
+      let line = this.buffer
 
-      if (this.from_line && this.context.lines < this.from_line) {
-        return callback()
-      }
-      if (this.to_line && this.context.lines > this.to_line) {
-        return callback()
-      }
+      if (line) {
+        this.context.lines++
 
-      if (line.length > this.maxLineLength) {
-        this.context.invalid_field_length++
-        const error = new Error(`Final line length ${line.length} exceeds maximum ${this.maxLineLength}`)
-        if (this.on_skip) {
-          this.on_skip(error, line)
+        if (this.from_line && this.context.lines < this.from_line) {
           return callback()
         }
-        if (this.skip_records_with_error)
-          return callback()
-        if (this.strict)
-          return callback(error)
-        return callback()
-      }
-
-      if (this.skipEmptyLines) {
-        line = line.trim()
-        if (!line) {
+        if (this.to_line && this.context.lines > this.to_line) {
           return callback()
         }
-      }
-      else {
-        line = this.trimValue(line)
-      }
 
-      let parsed: any
-      try {
-        parsed = JSON.parse(line, this.reviver || undefined)
-      }
-      catch {
-        const error = new Error(`Invalid JSON in last line: ${line.slice(0, 50)}...`)
-        if (this.on_skip) {
-          this.on_skip(error, line)
+        if (line.length > this.maxLineLength) {
+          this.context.invalid_field_length++
+          const error = new Error(`Final line length ${line.length} exceeds maximum ${this.maxLineLength}`)
+          if (this.on_skip) {
+            this.on_skip(error, line)
+            return callback()
+          }
+          if (this.skip_records_with_error)
+            return callback()
+          if (this.strict)
+            return callback(error)
           return callback()
         }
-        if (this.skip_records_with_error)
+
+        if (this.skipEmptyLines) {
+          line = line.trim()
+          if (!line) {
+            return callback()
+          }
+        }
+        else {
+          line = this.trimValue(line)
+        }
+
+        let parsed: any
+        try {
+          parsed = JSON.parse(line, this.reviver || undefined)
+        }
+        catch {
+          const error = new Error(`Invalid JSON in last line: ${line.slice(0, 50)}...`)
+          if (this.on_skip) {
+            this.on_skip(error, line)
+            return callback()
+          }
+          if (this.skip_records_with_error)
+            return callback()
+          if (this.strict)
+            return callback(error)
           return callback()
-        if (this.strict)
-          return callback(error)
-        return callback()
-      }
+        }
 
-      const processed = this.processRecord(parsed, line)
-      if (processed !== null) {
-        this.context.records++
+        const processed = this.processRecord(parsed, line)
+        if (processed !== null) {
+          this.context.records++
 
-        if (!this.from || this.context.records >= this.from) {
-          if (!this.to || this.context.records <= this.to) {
-            this.push(processed)
+          if (!this.from || this.context.records >= this.from) {
+            if (!this.to || this.context.records <= this.to) {
+              this.safePush(processed)
+            }
           }
         }
       }
+      callback()
     }
-    callback()
+    catch (error) {
+      callback(error as Error)
+    }
+  }
+
+  _destroy(error: Error | null, callback: (error?: Error | null) => void) {
+    this.isDestroyed = true
+    this.buffer = ''
+    callback(error)
   }
 }
