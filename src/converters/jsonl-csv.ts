@@ -27,8 +27,6 @@ export class JSONLToCSV extends Transform {
   private encoding: BufferEncoding
   private unflatten: boolean
   private unflattenSeparator: string
-  private headerWritten: boolean
-  private columns: string[] | null
   private buffer: string
 
   constructor(options: JSONLToCSVOptions = {}) {
@@ -36,11 +34,8 @@ export class JSONLToCSV extends Transform {
     this.encoding = options.encoding ?? 'utf8'
     this.unflatten = options.unflatten ?? false
     this.unflattenSeparator = options.unflattenSeparator ?? '.'
-    this.headerWritten = false
-    this.columns = null
     this.buffer = ''
 
-    // Configure csv-stringify options
     const stringifyOptions = {
       delimiter: options.delimiter ?? ',',
       quote: options.quote ?? '"',
@@ -52,10 +47,9 @@ export class JSONLToCSV extends Transform {
       columns: options.columns,
       cast: options.cast,
     }
-
+    // @ts-expect-error think this is a bug in csv-stringify types when using streaming api docs say to pass options directly
     this.stringifier = stringify(stringifyOptions)
 
-    // Handle stringified output
     this.stringifier.on('readable', () => {
       let chunk
       // eslint-disable-next-line no-cond-assign

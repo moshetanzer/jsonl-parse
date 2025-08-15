@@ -2,7 +2,6 @@ import type { TransformCallback } from 'node:stream'
 import { Transform } from 'node:stream'
 import { parse } from 'csv-parse'
 
-// CSV to JSONL Transform
 export interface CSVToJSONLOptions {
   delimiter?: string
   quote?: string
@@ -23,7 +22,6 @@ export interface CSVToJSONLOptions {
 export class CSVToJSONL extends Transform {
   private parser: any
   private replacer: ((this: any, key: string, value: any) => any) | null
-  private encoding: BufferEncoding
   private maxObjectSize: number
   private flatten: boolean
   private rootKey: string | null
@@ -32,13 +30,11 @@ export class CSVToJSONL extends Transform {
   constructor(options: CSVToJSONLOptions = {}) {
     super({ objectMode: false })
     this.replacer = options.replacer ?? null
-    this.encoding = options.encoding ?? 'utf8'
     this.maxObjectSize = options.maxObjectSize ?? Infinity
     this.flatten = options.flatten ?? false
     this.rootKey = options.rootKey ?? null
     this.objectCount = 0
 
-    // Configure csv-parse options
     const parseOptions = {
       delimiter: options.delimiter ?? ',',
       quote: options.quote ?? '"',
@@ -53,7 +49,6 @@ export class CSVToJSONL extends Transform {
 
     this.parser = parse(parseOptions)
 
-    // Handle parsed records
     this.parser.on('readable', () => {
       let record
       // eslint-disable-next-line no-cond-assign

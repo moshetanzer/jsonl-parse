@@ -1,1 +1,1 @@
-export * from './jsonl-validator'
+export * from './validator'

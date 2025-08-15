@@ -3,7 +3,6 @@ import { pipeline } from 'node:stream/promises'
 import { describe, expect, it } from 'vitest'
 import { createJSONLToCSVStream, JSONLToCSV } from '../src/converters/jsonl-csv'
 
-// Helper function to collect stream output
 async function collectStreamOutput(input: string, transformer: JSONLToCSV): Promise<string> {
   const chunks: string[] = []
 
